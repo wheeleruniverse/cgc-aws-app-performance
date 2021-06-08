@@ -1,3 +1,14 @@
 .idea/*
 
+terraform/.terraform/*
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/*.tfvars
+terraform/*_override.tf
+terraform/*_override.tf.json
+terraform/override.tf
+terraform/override.tf.json
+terraform/.terraformrc
+terraform/terraform.rc
+
 venv/*
