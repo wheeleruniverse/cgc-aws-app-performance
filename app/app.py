@@ -45,7 +45,6 @@ def fetch(sql):
 
 def connect():
     """ Connect to the PostgreSQL database server and return a cursor """
-    conn = None
     try:
         # read connection parameters
         params = config()
@@ -56,16 +55,10 @@ def connect():
 
     except (Exception, psycopg2.DatabaseError) as error:
         print("Error:", error)
-        conn = None
     
     else:
         # return a conn
         return conn
-
-    finally:
-        if conn is not None:
-            conn.close()
-            print("PostgreSQL connection is now closed")    
 
 
 app = Flask(__name__) 
@@ -73,8 +66,8 @@ app = Flask(__name__)
 
 @app.before_request
 def before_request():
-   g.request_start_time = time.time()
-   g.request_time = lambda: "%.5fs" % (time.time() - g.request_start_time)
+    g.request_start_time = time.time()
+    g.request_time = lambda: "%.5fs" % (time.time() - g.request_start_time)
 
 
 @app.route("/")     
