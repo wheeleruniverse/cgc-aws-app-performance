@@ -1,3 +1,18 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 3.27"
+    }
+  }
+
+  required_version = ">= 0.14.9"
+}
+
+provider "aws" {
+  profile = "default"
+  region  = "us-east-1"
+}
 
 // _________________________________________________________
 // variables
@@ -20,10 +35,27 @@ variable "cidr" {
   })
 }
 
+variable "prefix" {
+  default     = "wheeler-cgc2106-"
+  description = "prefix name"
+  type        = string
+}
+
+variable "project" {
+  default     = "CloudGuruChallenge_21.06"
+  description = "project name"
+  type        = string
+}
+
 // _________________________________________________________
 // resources
 
-resource "aws_eip" "ip" {}
+resource "aws_eip" "ip" {
+  tags = {
+    Name    = "${var.prefix}eip"
+    Project = var.project
+  }
+}
 
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.vpc.id
@@ -41,7 +73,7 @@ resource "aws_nat_gateway" "ngw" {
   subnet_id     = aws_subnet.private.id
 
   tags = {
-    Name    = "${var.prefix}igw"
+    Name    = "${var.prefix}ngw"
     Project = var.project
   }
 }
@@ -50,8 +82,8 @@ resource "aws_route_table" "private" {
   vpc_id = aws_vpc.vpc.id
 
   route {
-    cidr_block = aws_subnet.public.id
-    gateway_id = aws_internet_gateway.igw.id
+    cidr_block     = local.cidr_anywhere[0]
+    nat_gateway_id = aws_nat_gateway.ngw.id
   }
 
   tags = {
@@ -64,14 +96,24 @@ resource "aws_route_table" "public" {
   vpc_id = aws_vpc.vpc.id
 
   route {
-    cidr_block     = aws_subnet.private.id
-    nat_gateway_id = aws_nat_gateway.ngw.id
+    cidr_block = local.cidr_anywhere[0]
+    gateway_id = aws_internet_gateway.igw.id
   }
 
   tags = {
     Name    = "${var.prefix}public-rt"
     Project = var.project
   }
+}
+
+resource "aws_route_table_association" "private" {
+  route_table_id = aws_route_table.private.id
+  subnet_id      = aws_subnet.private.id
+}
+
+resource "aws_route_table_association" "public" {
+  route_table_id = aws_route_table.public.id
+  subnet_id      = aws_subnet.public.id
 }
 
 resource "aws_security_group" "private_sg" {

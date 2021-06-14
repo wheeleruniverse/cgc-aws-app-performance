@@ -1,3 +1,18 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 3.27"
+    }
+  }
+
+  required_version = ">= 0.14.9"
+}
+
+provider "aws" {
+  profile = "default"
+  region  = "us-east-1"
+}
 
 // _________________________________________________________
 // variables
@@ -14,10 +29,38 @@ variable "password" {
   type        = string
 }
 
+variable "prefix" {
+  default     = "wheeler-cgc2106-"
+  description = "prefix name"
+  type        = string
+}
+
+variable "project" {
+  default     = "CloudGuruChallenge_21.06"
+  description = "project name"
+  type        = string
+}
+
 variable "public_key" {
   description = "ssh public key"
   sensitive   = true
   type        = string
+}
+
+variable "sg" {
+  description = "security group ids"
+  type = object({
+    private = string
+    public  = string
+  })
+}
+
+variable "subnet" {
+  description = "subnet ids"
+  type = object({
+    private = string
+    public  = string
+  })
 }
 
 variable "type" {
@@ -39,7 +82,7 @@ variable "type" {
 
 resource "aws_db_instance" "db" {
   allocated_storage      = 20
-  db_subnet_group_name   = aws_subnet.private.id
+  db_subnet_group_name   = var.subnet.private
   engine                 = "postgres"
   engine_version         = "13.2"
   identifier             = "${var.prefix}db"
@@ -50,7 +93,7 @@ resource "aws_db_instance" "db" {
   skip_final_snapshot    = true
   storage_type           = "gp2"
   username               = "master"
-  vpc_security_group_ids = [aws_security_group.private_sg.id]
+  vpc_security_group_ids = [var.sg.private]
 
   tags = {
     Name    = "${var.prefix}db"
@@ -65,8 +108,8 @@ resource "aws_elasticache_cluster" "cache" {
   node_type            = var.type.cache
   num_cache_nodes      = 1
   parameter_group_name = "default.redis6.x"
-  security_group_ids   = [aws_security_group.private_sg.id]
-  subnet_group_name    = aws_subnet.private.id
+  security_group_ids   = [var.sg.private]
+  subnet_group_name    = var.subnet.private
 
   tags = {
     Name    = "${var.prefix}cache"
@@ -78,8 +121,8 @@ resource "aws_instance" "server" {
   ami                    = var.ami
   instance_type          = var.type.ec2
   key_name               = aws_key_pair.keypair.key_name
-  subnet_id              = aws_subnet.public.id
-  vpc_security_group_ids = [aws_security_group.public_sg.id]
+  subnet_id              = var.subnet.public
+  vpc_security_group_ids = [var.sg.public]
 
   tags = {
     Name    = "${var.prefix}server"
