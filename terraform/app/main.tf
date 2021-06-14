@@ -50,16 +50,16 @@ variable "public_key" {
 variable "sg" {
   description = "security group ids"
   type = object({
-    private = string
-    public  = string
+    private = list(string)
+    public  = list(string)
   })
 }
 
 variable "subnet" {
   description = "subnet ids"
   type = object({
-    private = string
-    public  = string
+    private = list(string)
+    public  = list(string)
   })
 }
 
@@ -82,7 +82,7 @@ variable "type" {
 
 resource "aws_db_instance" "db" {
   allocated_storage      = 20
-  db_subnet_group_name   = var.subnet.private
+  db_subnet_group_name   = aws_db_subnet_group.dsg.name
   engine                 = "postgres"
   engine_version         = "13.2"
   identifier             = "${var.prefix}db"
@@ -93,10 +93,20 @@ resource "aws_db_instance" "db" {
   skip_final_snapshot    = true
   storage_type           = "gp2"
   username               = "master"
-  vpc_security_group_ids = [var.sg.private]
+  vpc_security_group_ids = var.sg.private
 
   tags = {
     Name    = "${var.prefix}db"
+    Project = var.project
+  }
+}
+
+resource "aws_db_subnet_group" "dsg" {
+  name       = "${var.prefix}dsg"
+  subnet_ids = var.subnet.private
+
+  tags = {
+    Name    = "${var.prefix}dsg"
     Project = var.project
   }
 }
@@ -108,11 +118,21 @@ resource "aws_elasticache_cluster" "cache" {
   node_type            = var.type.cache
   num_cache_nodes      = 1
   parameter_group_name = "default.redis6.x"
-  security_group_ids   = [var.sg.private]
-  subnet_group_name    = var.subnet.private
+  security_group_ids   = var.sg.private
+  subnet_group_name    = aws_elasticache_subnet_group.csg.name
 
   tags = {
     Name    = "${var.prefix}cache"
+    Project = var.project
+  }
+}
+
+resource "aws_elasticache_subnet_group" "csg" {
+  name       = "${var.prefix}csg"
+  subnet_ids = var.subnet.private
+
+  tags = {
+    Name    = "${var.prefix}csg"
     Project = var.project
   }
 }
@@ -121,8 +141,8 @@ resource "aws_instance" "server" {
   ami                    = var.ami
   instance_type          = var.type.ec2
   key_name               = aws_key_pair.keypair.key_name
-  subnet_id              = var.subnet.public
-  vpc_security_group_ids = [var.sg.public]
+  subnet_id              = random_shuffle.public_subnet.result
+  vpc_security_group_ids = var.sg.public
 
   tags = {
     Name    = "${var.prefix}server"
@@ -138,4 +158,9 @@ resource "aws_key_pair" "keypair" {
     Name    = "${var.prefix}keypair"
     Project = var.project
   }
+}
+
+resource "random_shuffle" "public_subnet" {
+  input        = var.subnet.public
+  result_count = 1
 }

@@ -18,21 +18,23 @@ provider "aws" {
 // variables
 
 locals {
-  cidr_anywhere = ["0.0.0.0/0"]
-}
+  cidr_anywhere_block = "0.0.0.0/0"
 
-variable "cidr" {
-  default = {
-    private = "10.0.0.224/27"
-    public  = "10.0.0.0/27"
-    vpc     = "10.0.0.0/24"
-  }
-  description = "cidr blocks"
-  type = object({
-    private = string
-    public  = string
-    vpc     = string
-  })
+  cidr_private_blocks = [
+    "10.0.0.0/27",
+    "10.0.0.32/27",
+    "10.0.0.64/27",
+    "10.0.0.96/27"
+  ]
+
+  cidr_public_blocks = [
+    "10.0.0.128/27",
+    "10.0.0.160/27",
+    "10.0.0.192/27",
+    "10.0.0.224/27"
+  ]
+
+  cidr_vpc_block = "10.0.0.0/24"
 }
 
 variable "prefix" {
@@ -70,7 +72,7 @@ resource "aws_nat_gateway" "ngw" {
   depends_on = [aws_internet_gateway.igw]
 
   allocation_id = aws_eip.ip.id
-  subnet_id     = aws_subnet.private.id
+  subnet_id     = aws_subnet.private[0].id
 
   tags = {
     Name    = "${var.prefix}ngw"
@@ -82,7 +84,7 @@ resource "aws_route_table" "private" {
   vpc_id = aws_vpc.vpc.id
 
   route {
-    cidr_block     = local.cidr_anywhere[0]
+    cidr_block     = local.cidr_anywhere_block
     nat_gateway_id = aws_nat_gateway.ngw.id
   }
 
@@ -96,7 +98,7 @@ resource "aws_route_table" "public" {
   vpc_id = aws_vpc.vpc.id
 
   route {
-    cidr_block = local.cidr_anywhere[0]
+    cidr_block = local.cidr_anywhere_block
     gateway_id = aws_internet_gateway.igw.id
   }
 
@@ -107,13 +109,17 @@ resource "aws_route_table" "public" {
 }
 
 resource "aws_route_table_association" "private" {
+  count = length(local.cidr_private_blocks)
+
   route_table_id = aws_route_table.private.id
-  subnet_id      = aws_subnet.private.id
+  subnet_id      = aws_subnet.private[count.index].id
 }
 
 resource "aws_route_table_association" "public" {
+  count = length(local.cidr_public_blocks)
+
   route_table_id = aws_route_table.public.id
-  subnet_id      = aws_subnet.public.id
+  subnet_id      = aws_subnet.public[count.index].id
 }
 
 resource "aws_security_group" "private_sg" {
@@ -122,7 +128,7 @@ resource "aws_security_group" "private_sg" {
   vpc_id      = aws_vpc.vpc.id
 
   egress {
-    cidr_blocks = local.cidr_anywhere
+    cidr_blocks = [local.cidr_anywhere_block]
     description = "egress all from anywhere"
     from_port   = 0
     protocol    = "-1"
@@ -130,7 +136,7 @@ resource "aws_security_group" "private_sg" {
   }
 
   ingress {
-    cidr_blocks = [aws_vpc.vpc.cidr_block]
+    cidr_blocks = [local.cidr_vpc_block]
     description = "ingress postgres from vpc"
     from_port   = 5432
     protocol    = "tcp"
@@ -138,7 +144,7 @@ resource "aws_security_group" "private_sg" {
   }
 
   ingress {
-    cidr_blocks = [aws_vpc.vpc.cidr_block]
+    cidr_blocks = [local.cidr_vpc_block]
     description = "ingress redis from vpc"
     from_port   = 6379
     protocol    = "tcp"
@@ -157,7 +163,7 @@ resource "aws_security_group" "public_sg" {
   vpc_id      = aws_vpc.vpc.id
 
   egress {
-    cidr_blocks = local.cidr_anywhere
+    cidr_blocks = [local.cidr_anywhere_block]
     description = "egress all from anywhere"
     from_port   = 0
     protocol    = "-1"
@@ -165,7 +171,7 @@ resource "aws_security_group" "public_sg" {
   }
 
   ingress {
-    cidr_blocks = local.cidr_anywhere
+    cidr_blocks = [local.cidr_anywhere_block]
     description = "ingress https from anywhere"
     from_port   = 443
     protocol    = "tcp"
@@ -173,7 +179,7 @@ resource "aws_security_group" "public_sg" {
   }
 
   ingress {
-    cidr_blocks = local.cidr_anywhere
+    cidr_blocks = [local.cidr_anywhere_block]
     description = "ingress ssh from anywhere"
     from_port   = 22
     protocol    = "tcp"
@@ -187,27 +193,31 @@ resource "aws_security_group" "public_sg" {
 }
 
 resource "aws_subnet" "private" {
-  cidr_block = var.cidr.private
+  count = length(local.cidr_private_blocks)
+
+  cidr_block = local.cidr_private_blocks[count.index]
   vpc_id     = aws_vpc.vpc.id
 
   tags = {
-    Name    = "${var.prefix}private-1"
+    Name    = "${var.prefix}private-${count.index + 1}"
     Project = var.project
   }
 }
 
 resource "aws_subnet" "public" {
-  cidr_block = var.cidr.public
+  count = length(local.cidr_public_blocks)
+
+  cidr_block = local.cidr_public_blocks[count.index]
   vpc_id     = aws_vpc.vpc.id
 
   tags = {
-    Name    = "${var.prefix}public-1"
+    Name    = "${var.prefix}public-${count.index + 1}"
     Project = var.project
   }
 }
 
 resource "aws_vpc" "vpc" {
-  cidr_block = var.cidr.vpc
+  cidr_block = local.cidr_vpc_block
 
   tags = {
     Name    = "${var.prefix}vpc"
