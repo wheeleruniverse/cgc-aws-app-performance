@@ -138,11 +138,13 @@ resource "aws_elasticache_subnet_group" "csg" {
 }
 
 resource "aws_instance" "server" {
-  ami                    = var.ami
-  instance_type          = var.type.ec2
-  key_name               = aws_key_pair.keypair.key_name
-  subnet_id              = random_shuffle.public_subnet.result
-  vpc_security_group_ids = var.sg.public
+  ami                         = var.ami
+  associate_public_ip_address = true
+  instance_type               = var.type.ec2
+  key_name                    = aws_key_pair.keypair.key_name
+  subnet_id                   = random_shuffle.public_subnet.result[0]
+  user_data                   = file("user-data.sh")
+  vpc_security_group_ids      = var.sg.public
 
   tags = {
     Name    = "${var.prefix}server"

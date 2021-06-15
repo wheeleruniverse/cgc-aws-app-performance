@@ -217,7 +217,9 @@ resource "aws_subnet" "public" {
 }
 
 resource "aws_vpc" "vpc" {
-  cidr_block = local.cidr_vpc_block
+  cidr_block           = local.cidr_vpc_block
+  enable_dns_hostnames = true
+  enable_dns_support   = true
 
   tags = {
     Name    = "${var.prefix}vpc"
