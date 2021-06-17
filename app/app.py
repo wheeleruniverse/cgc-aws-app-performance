@@ -1,10 +1,14 @@
-# /usr/bin/python2.7
+import os
+
 import psycopg2
 from configparser import ConfigParser
 
 import redis
 from flask import Flask, render_template, g
 import time
+
+debug = os.environ.get('DEBUG')
+debug = debug.lower() in ['1', 't', 'true', 'y', 'yes'] if debug is not None else False
 
 
 def ini(section, filename='config/database.ini'):
@@ -18,14 +22,14 @@ def ini(section, filename='config/database.ini'):
     parser = ConfigParser()
     parser.read(filename)
 
-    conf = {}
+    config = {}
     if parser.has_section(section):
         for i in parser.items(section):
-            conf[i[0]] = i[1]
+            config[i[0]] = i[1]
     else:
         raise Exception('section {0} not found in {1}'.format(section, filename))
 
-    return conf
+    return config
 
 
 def get_postgres():
@@ -39,11 +43,12 @@ def get_postgres():
         config = ini('postgres')
 
         # try to connect to the postgres
-        print('connecting to postgres...')
+        print('get_postgres() connecting to postgres...')
         return psycopg2.connect(**config)
 
     except (Exception, psycopg2.DatabaseError) as error:
-        print('error:', error)
+        print('get_postgres() error:', error)
+        raise error
 
 
 def get_redis():
@@ -57,11 +62,12 @@ def get_redis():
         config = ini('redis')
 
         # try to connect to redis
-        print('connecting to redis...')
+        print('get_redis() connecting to redis...')
         return redis.Redis.from_url(**config)
 
     except Exception as error:
-        print('error:', error)
+        print('get_redis() error:', error)
+        raise error
 
 
 def select_version():
@@ -77,6 +83,7 @@ def select_version():
 
     # connect to cache
     redis_conn = get_redis()
+
     try:
         # read value from cache
         value = redis_conn.get(redis_key)
@@ -84,11 +91,12 @@ def select_version():
             return value
 
     except Exception as error:
-        print('error:', error)
+        print('select_version() error:', error)
+        raise error
 
     finally:
         redis_conn.close()
-        print('redis connection closed')
+        print('select_version() redis connection closed')
 
     # connect to database
     postgres_conn = get_postgres()
@@ -103,12 +111,13 @@ def select_version():
         return value
 
     except Exception as error:
-        print('error:', error)
+        print('select_version() error:', error)
+        raise error
 
     finally:
         cursor.close()
         postgres_conn.close()
-        print('postgres connection closed')
+        print('select_version() postgres connection closed')
 
 
 app = Flask(__name__) 
@@ -122,13 +131,32 @@ def before_request():
 
 @app.route("/")     
 def index():
+    """
+    finds the database version from the cache, if present, or database and displays it on the template
+    :return: a webpage to display
+    """
 
-    config = ini('postgres')
-    db_host = config['host']
-    db_version = select_version()
+    html = 'index.html'
 
-    return render_template('index.html', db_host=db_host, db_version=db_version)
+    error = None
+    db_host = None
+    db_version = None
+    try:
+        config = ini('postgres')
+        db_host = config['host']
+        db_version = select_version()
+
+    except Exception as e:
+        print('index() error:', e)
+        error = e if debug else "we're currently experiencing technical difficulties"
+
+    return render_template(
+        html,
+        error=error,
+        db_host=db_host,
+        db_version=db_version
+    )
 
 
-if __name__ == "__main__":        # on running python app.py
-    app.run()                     # run the flask app
+if __name__ == "__main__":
+    app.run()

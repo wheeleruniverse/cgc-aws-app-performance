@@ -3,8 +3,17 @@
     <title>CloudGuruChallenge_21.06</title>
 </head>
 <body>
-    <h1>DB Version: {{ db_version }}</h1>
-    <h1>DB Host: {{ db_host }}</h1>
+    {% if error %}
+        <h2>Error: {{ error }}</h2>
+    {% endif %}
+
+    {% if db_host %}
+        <h2>Database Host: {{ db_host }}</h2>
+    {% endif %}
+
+    {% if db_version %}
+        <h2>Database Version: {{ db_version }}</h2>
+    {% endif %}
     <hr>
     Elapsed Time: {{ g.request_time() }}
 </body>
