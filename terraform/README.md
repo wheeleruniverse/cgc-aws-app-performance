@@ -78,14 +78,6 @@ Terraform:
 * vpc/main.tf
 * vpc/terraform.tfstate
 
-AWS CLI:
-
-```bash
-aws ec2 describe-subnets \
---filters "Name=vpc-id,Values=vpc-01627f0f32581ef60" \
-| jq '.Subnets | map(.SubnetId) | join(",")'
-```
-
 ---
 ## Application Infrastructure
 
