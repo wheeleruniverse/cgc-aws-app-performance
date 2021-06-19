@@ -138,6 +138,11 @@ resource "aws_elasticache_subnet_group" "csg" {
 }
 
 resource "aws_instance" "server" {
+  depends_on = [
+    aws_db_instance.db,
+    aws_elasticache_cluster.cache
+  ]
+
   ami                         = var.ami
   associate_public_ip_address = true
   instance_type               = var.type.ec2

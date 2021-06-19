@@ -1,12 +1,30 @@
 #!/bin/bash
 
 # ___________________________________________________________
-# variables
-CACHE_URL=cache
-DB_HOST=host
-DB_NAME=name
-DB_PASS=pass
-DB_USER=user
+# user variables
+DB_PASS=<password>
+PREFIX="wheeler-cgc2106-"
+
+# ___________________________________________________________
+# elasticache variables
+CACHE_URL=$(aws elasticache describe-cache-clusters \
+--region us-east-1 \
+--cache-cluster-id "${PREFIX}cache" \
+--show-cache-node-info \
+--query "CacheClusters[*].CacheNodes[0].Endpoint.Address" \
+--output json | jq --raw-output .[])
+
+# ___________________________________________________________
+# rds variables
+RDS=$(aws rds describe-db-instances \
+--region us-east-1 \
+--db-instance-identifier "${PREFIX}db" \
+--query "DBInstances[*].{host: Endpoint.Address, name: DBName, user: MasterUsername}" \
+--output json | jq .[])
+
+DB_HOST=$(echo ${RDS} | jq --raw-output .host)
+DB_NAME=$(echo ${RDS} | jq --raw-output .name)
+DB_USER=$(echo ${RDS} | jq --raw-output .user)
 
 # ___________________________________________________________
 # update
@@ -46,8 +64,8 @@ echo "url=${CACHE_URL}" >> /opt/cgc/app/config/database.ini
 
 # ___________________________________________________________
 # nginx conf
-sudo cp /opt/cgc/app/config/wheeler-cgc2106-nginx.conf /etc/nginx/conf.d
-sudo service nginx start
+# sudo cp /opt/cgc/app/config/wheeler-cgc2106-nginx.conf /etc/nginx/conf.d
+# sudo service nginx start
 
 # ___________________________________________________________
 # postgres conf
