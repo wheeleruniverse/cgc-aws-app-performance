@@ -79,3 +79,8 @@ PGPASSWORD="${DB_PASS}" psql -h "${DB_HOST}" -U "${DB_USER}" -f /opt/cgc/app/ins
 # ___________________________________________________________
 # python conf
 sudo pip3 install -r /opt/cgc/app/requirements.txt
+
+# ___________________________________________________________
+# flask conf
+cd /opt/cgc/app/
+nohup flask run > flask.log &

@@ -79,7 +79,7 @@ def select_version():
     # constants
     query_str = 'select slow_version();'
     redis_key = 'slow_version'
-    redis_ttl = 60
+    redis_ttl = 10
 
     # connect to cache
     redis_conn = get_redis()
@@ -107,7 +107,7 @@ def select_version():
         value = cursor.fetchone()[0]
 
         # set value in cache
-        redis_conn.set(redis_key, value, keepttl=redis_ttl)
+        redis_conn.set(redis_key, value, ex=redis_ttl)
         return value
 
     except Exception as error:
