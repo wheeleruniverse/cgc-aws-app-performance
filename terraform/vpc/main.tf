@@ -18,6 +18,13 @@ provider "aws" {
 // variables
 
 locals {
+  availability_zones = [
+    "us-east-1a",
+    "us-east-1b",
+    "us-east-1c",
+    "us-east-1d"
+  ]
+
   cidr_anywhere_block = "0.0.0.0/0"
 
   cidr_private_blocks = [
@@ -35,6 +42,12 @@ locals {
   ]
 
   cidr_vpc_block = "10.0.0.0/24"
+}
+
+variable "cidr_ssh_blocks" {
+  description = "cidr blocks to permit ssh access to"
+  sensitive   = true
+  type        = list(string)
 }
 
 variable "prefix" {
@@ -172,14 +185,14 @@ resource "aws_security_group" "public_sg" {
 
   ingress {
     cidr_blocks = [local.cidr_anywhere_block]
-    description = "ingress https from anywhere"
-    from_port   = 443
+    description = "ingress flask from anywhere"
+    from_port   = 5000
     protocol    = "tcp"
-    to_port     = 443
+    to_port     = 5000
   }
 
   ingress {
-    cidr_blocks = [local.cidr_anywhere_block]
+    cidr_blocks = var.cidr_ssh_blocks
     description = "ingress ssh from anywhere"
     from_port   = 22
     protocol    = "tcp"
@@ -195,8 +208,9 @@ resource "aws_security_group" "public_sg" {
 resource "aws_subnet" "private" {
   count = length(local.cidr_private_blocks)
 
-  cidr_block = local.cidr_private_blocks[count.index]
-  vpc_id     = aws_vpc.vpc.id
+  availability_zone = local.availability_zones[count.index]
+  cidr_block        = local.cidr_private_blocks[count.index]
+  vpc_id            = aws_vpc.vpc.id
 
   tags = {
     Name    = "${var.prefix}private-${count.index + 1}"
@@ -207,8 +221,9 @@ resource "aws_subnet" "private" {
 resource "aws_subnet" "public" {
   count = length(local.cidr_public_blocks)
 
-  cidr_block = local.cidr_public_blocks[count.index]
-  vpc_id     = aws_vpc.vpc.id
+  availability_zone = local.availability_zones[count.index]
+  cidr_block        = local.cidr_public_blocks[count.index]
+  vpc_id            = aws_vpc.vpc.id
 
   tags = {
     Name    = "${var.prefix}public-${count.index + 1}"
