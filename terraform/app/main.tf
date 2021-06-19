@@ -171,3 +171,10 @@ resource "random_shuffle" "public_subnet" {
   input        = var.subnet.public
   result_count = 1
 }
+
+// _________________________________________________________
+// outputs
+
+output "server_public_ip" {
+  value = aws_instance.server.public_ip
+}

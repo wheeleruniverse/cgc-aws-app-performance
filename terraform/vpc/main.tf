@@ -184,19 +184,19 @@ resource "aws_security_group" "public_sg" {
   }
 
   ingress {
-    cidr_blocks = [local.cidr_anywhere_block]
-    description = "ingress flask from anywhere"
-    from_port   = 5000
-    protocol    = "tcp"
-    to_port     = 5000
-  }
-
-  ingress {
     cidr_blocks = var.cidr_ssh_blocks
-    description = "ingress ssh from anywhere"
+    description = "ingress ssh from provided"
     from_port   = 22
     protocol    = "tcp"
     to_port     = 22
+  }
+
+  ingress {
+    cidr_blocks = [local.cidr_anywhere_block]
+    description = "ingress http from anywhere"
+    from_port   = 80
+    protocol    = "tcp"
+    to_port     = 80
   }
 
   tags = {
