@@ -64,7 +64,7 @@ echo "password=${DB_PASS}" >> /opt/cgc/app/config/database.ini
 echo "user=${DB_USER}" >> /opt/cgc/app/config/database.ini
 echo "" >> /opt/cgc/app/config/database.ini
 echo "[redis]" >> /opt/cgc/app/config/database.ini
-echo "url=${CACHE_URL}" >> /opt/cgc/app/config/database.ini
+echo "url=redis://${CACHE_URL}" >> /opt/cgc/app/config/database.ini
 
 # ___________________________________________________________
 # nginx conf

@@ -86,7 +86,7 @@ def select_version():
 
     try:
         # read value from cache
-        value = redis_conn.get(redis_key)
+        value = redis_conn.get(redis_key).decode('utf-8')
         if value is not None:
             return value
 
@@ -107,7 +107,7 @@ def select_version():
         value = cursor.fetchone()[0]
 
         # set value in cache
-        redis_conn.set(redis_key, value, ex=redis_ttl)
+        redis_conn.set(redis_key, value.encode('utf-8'), ex=redis_ttl)
         return value
 
     except Exception as error:
