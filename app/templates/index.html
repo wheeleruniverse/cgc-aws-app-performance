@@ -1,20 +1,40 @@
-<html lang="en">
-<head>
-    <title>CloudGuruChallenge_21.06</title>
-</head>
-<body>
-    {% if error %}
-        <h2>Error: {{ error }}</h2>
-    {% endif %}
+{% extends 'base.html' %}
+{% block content %}
+<div class="header">
+    App Performance with ElastiCache
+</div>
 
-    {% if db_host %}
-        <h2>Database Host: {{ db_host }}</h2>
-    {% endif %}
+{% if error %}
+<div class="error section">
+    <span class="section-title">
+        Error
+    </span>
+    <span>{{ error }}</span>
+</div>
+{% endif %}
 
-    {% if db_version %}
-        <h2>Database Version: {{ db_version }}</h2>
-    {% endif %}
-    <hr>
-    Elapsed Time: {{ g.request_time() }}
-</body>
-</html>
+{% if db_host %}
+<div class="section">
+    <span class="section-title">
+        Database Host
+    </span>
+    <span>{{ db_host }}</span>
+</div>
+{% endif %}
+
+{% if db_version %}
+<div class="section">
+    <span class="section-title">
+        Database Version
+    </span>
+    <span>{{ db_version }}</span>
+</div>
+{% endif %}
+
+<div class="section">
+    <span class="section-title">
+        Elapsed Time
+    </span>
+    <span>{{ g.request_time() }}</span>
+</div>
+{% endblock %}
