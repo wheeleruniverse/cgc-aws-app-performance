@@ -81,6 +81,6 @@ PGPASSWORD="${DB_PASS}" psql -h "${DB_HOST}" -U "${DB_USER}" -f /opt/cgc/app/ins
 sudo pip3 install -r /opt/cgc/app/requirements.txt
 
 # ___________________________________________________________
-# flask conf
+# run app
 cd /opt/cgc/app/
-nohup flask run > flask.log &
+gunicorn -D app:app

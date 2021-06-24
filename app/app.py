@@ -86,9 +86,9 @@ def select_version():
 
     try:
         # read value from cache
-        value = redis_conn.get(redis_key).decode('utf-8')
+        value = redis_conn.get(redis_key)
         if value is not None:
-            return value
+            return value.decode('utf-8')
 
     except Exception as error:
         print('select_version() error:', error)
